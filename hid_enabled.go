@@ -1,5 +1,5 @@
 // hid - Gopher Interface Devices (USB HID)
-// Copyright (c) 2017 Peter Szilagyi. All rights reserved.
+// Copyright (c) 2017 Péter Szilágyi. All rights reserved.
 //
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under GNU GPL 2.1 or later.
@@ -51,6 +51,13 @@ import (
 func init() {
 	// Initialize the HIDAPI library
 	C.hid_init()
+}
+
+// Supported returns whether this platform is supported by the HID library or not.
+// The goal of this method is to allow programatically handling platforms that do
+// not support USB HID and not having to fall back to build constraints.
+func Supported() bool {
+	return true
 }
 
 // Enumerate returns a list of all the HID devices attached to the system which
