@@ -13,6 +13,10 @@ import "errors"
 // during the execution.
 var ErrDeviceClosed = errors.New("hid: device closed")
 
+// ErrUnsupportedPlatform is returned for all operations where the underlying
+// operating system is not supported by the library.
+var ErrUnsupportedPlatform = errors.New("hid: unsupported platform")
+
 // DeviceInfo is a hidapi info structure.
 type DeviceInfo struct {
 	Path         string // Platform-specific device path
