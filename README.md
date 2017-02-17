@@ -1,3 +1,8 @@
+[![GoDoc][docimg]][docurl]
+
+[docimg]: https://godoc.org/github.com/karalabe/hid?status.svg
+[docurl]: https://godoc.org/github.com/karalabe/hid
+
 # Gopher Interface Devices (USB HID)
 
 The `hid` package is a cross platform library for accessing and communicating with USB Human Interface
@@ -5,15 +10,17 @@ Devices (HID). It is an alternative package to [`gousb`](https://github.com/kara
 cases where devices support this ligher mode of operation (e.g. input devices, hardware crypto wallets).
 
 The package wraps [`hidapi`](https://github.com/signal11/hidapi) for accessing OS specific USB HID APIs
-directly instead of using low level USB constructs, which might have permission issues on some platofrms.
+directly instead of using low level USB constructs, which might have permission issues on some platforms.
 On Linux the package also wraps [`libusb`](https://github.com/libusb/libusb). Both of these dependencies
 are vendored directly into the repository and wrapped using CGO, making the `hid` package self-contained
-and go-gettable. Supported platforms at the moment are Linux, macOS and Windows (exclude constraints are
-also specified for Android and iOS to allow smoother vendoring into cross platform projects).
+and go-gettable.
+
+Supported platforms at the moment are Linux, macOS and Windows (exclude constraints are also specified
+for Android and iOS to allow smoother vendoring into cross platform projects).
 
 ## Acknowledgements
 
-Although the `hid` package is an implementation from scratch, it was heavily insipred by the existing
+Although the `hid` package is an implementation from scratch, it was heavily inspired by the existing
 [`go.hid`](https://github.com/GeertJohan/go.hid) library, which seems abandoned since 2015; is incompatible
 with Go 1.6+; and has various external dependencies. Given its inspirational roots, I thought it important
 to give credit to the author of said package too.

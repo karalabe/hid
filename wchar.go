@@ -34,38 +34,38 @@ import (
 	"unicode/utf8"
 )
 
-var SIZEOF_WCHAR_T C.size_t = C.size_t(C.SIZEOF_WCHAR_T)
+var sizeofWcharT C.size_t = C.size_t(C.SIZEOF_WCHAR_T)
 
 func stringToWcharT(s string) (*C.wchar_t, C.size_t) {
-	switch SIZEOF_WCHAR_T {
+	switch sizeofWcharT {
 	case 2:
 		return stringToWchar2(s) // Windows
 	case 4:
 		return stringToWchar4(s) // Unix
 	default:
-		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", SIZEOF_WCHAR_T))
+		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", sizeofWcharT))
 	}
 }
 
 func wcharTToString(s *C.wchar_t) (string, error) {
-	switch SIZEOF_WCHAR_T {
+	switch sizeofWcharT {
 	case 2:
 		return wchar2ToString(s) // Windows
 	case 4:
 		return wchar4ToString(s) // Unix
 	default:
-		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", SIZEOF_WCHAR_T))
+		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", sizeofWcharT))
 	}
 }
 
 func wcharTNToString(s *C.wchar_t, size C.size_t) (string, error) {
-	switch SIZEOF_WCHAR_T {
+	switch sizeofWcharT {
 	case 2:
 		return wchar2NToString(s, size) // Windows
 	case 4:
 		return wchar4NToString(s, size) // Unix
 	default:
-		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", SIZEOF_WCHAR_T))
+		panic(fmt.Sprintf("Invalid sizeof(wchar_t) = %v", sizeofWcharT))
 	}
 }
 
@@ -83,7 +83,7 @@ func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 		s1 = s1[size:]
 	}
 	slen++ // \0
-	res := C.malloc(C.size_t(slen) * SIZEOF_WCHAR_T)
+	res := C.malloc(C.size_t(slen) * sizeofWcharT)
 	var i int
 	for len(s) > 0 {
 		r, size := utf8.DecodeRuneInString(s)
@@ -106,7 +106,7 @@ func stringToWchar2(s string) (*C.wchar_t, C.size_t) {
 func stringToWchar4(s string) (*C.wchar_t, C.size_t) {
 	slen := utf8.RuneCountInString(s)
 	slen++ // \0
-	res := C.malloc(C.size_t(slen) * SIZEOF_WCHAR_T)
+	res := C.malloc(C.size_t(slen) * sizeofWcharT)
 	var i int
 	for len(s) > 0 {
 		r, size := utf8.DecodeRuneInString(s)
