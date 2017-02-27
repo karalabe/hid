@@ -4,9 +4,7 @@
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under GNU GPL 2.1 or later.
 
-// +build cgo
-// +build !ios
-// +build linux darwin windows
+// +build linux,cgo darwin,!ios,cgo windows,cgo
 
 package hid
 
@@ -14,7 +12,7 @@ package hid
 #cgo CFLAGS: -I./hidapi/hidapi
 
 #cgo linux CFLAGS: -I./libusb/libusb -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
-#cgo linux LDFLAGS: -lrt
+#cgo linux,!android LDFLAGS: -lrt
 #cgo darwin CFLAGS: -DOS_DARWIN
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
 #cgo windows CFLAGS: -DOS_WINDOWS
