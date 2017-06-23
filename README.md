@@ -24,6 +24,31 @@ and go-gettable.
 Supported platforms at the moment are Linux, macOS and Windows (exclude constraints are also specified
 for Android and iOS to allow smoother vendoring into cross platform projects).
 
+## Cross-compiling the binaries
+
+When you do `go get`, the embedded C library is compiled using your host OS compiler into the binary format
+of your host OS. When you will try to cross-compile your program, like so:
+
+`GOARCH=arm go build`
+ 
+you will find (after transferring the binary to the target OS) that the call to Enumerate() command yields no
+results. However, there is a way to change this. You will need to have the cross-compiler for your target
+machine. I'll use an example of raspberry-pi 3.
+
+you can get the cross-compiler from raspberry pi repository, like so:
+
+`git clone https://github.com/raspberrypi/tools`
+
+next, you can proceed to cross-compile the project:
+
+`CGO_ENABLED=1 GOARCH=arm CC=tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc go build`
+
+which will produce a binary compatible with raspberry-pi.
+
+if your host OS is a 32-bit one, just remove `-x64` from the command-line above.
+
+as you can see, as long as you have the copy of a cross-compiler, producing binaries for different targets is not so complicated
+
 ## Acknowledgements
 
 Although the `hid` package is an implementation from scratch, it was heavily inspired by the existing
