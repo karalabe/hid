@@ -4,7 +4,7 @@
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under GNU GPL 2.1 or later.
 
-// +build linux,cgo,!hidraw darwin,!ios,cgo windows,cgo
+// +build linux,hidraw,cgo
 
 package hid
 
@@ -13,12 +13,9 @@ package hid
 
 #cgo linux CFLAGS: -I./libusb/libusb -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
 #cgo linux,!android LDFLAGS: -lrt
-#cgo darwin CFLAGS: -DOS_DARWIN
-#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
-#cgo windows CFLAGS: -DOS_WINDOWS
-#cgo windows LDFLAGS: -lsetupapi
+#cgo linux LDFLAGS: -ludev
 
-#ifdef OS_LINUX
+
 	#include <sys/poll.h>
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
@@ -33,12 +30,123 @@ package hid
 	#include "strerror.c"
 	#include "sync.c"
 
-	#include "hidapi/libusb/hid.c"
-#elif OS_DARWIN
-	#include "hidapi/mac/hid.c"
-#elif OS_WINDOWS
-	#include "hidapi/windows/hid.c"
-#endif
+	#include "hidapi/linux/hid.c"
+
+	static uint32_t
+	get_bytes (uint8_t * rpt, size_t len, size_t num_bytes, size_t cur)
+	{
+	  // Return if there aren't enough bytes.
+	  if (cur + num_bytes >= len)
+	    return 0;
+
+	  if (num_bytes == 0)
+	    return 0;
+	  else if (num_bytes == 1)
+	    {
+	      return rpt[cur + 1];
+	    }
+	  else if (num_bytes == 2)
+	    {
+	      return (rpt[cur + 2] * 256 + rpt[cur + 1]);
+	    }
+	  else
+	    return 0;
+	}
+
+	static int
+	get_usage (uint8_t * report_descriptor, size_t size,
+		   unsigned short *usage_page, unsigned short *usage)
+	{
+	  size_t i = 0;
+	  int size_code;
+	  int data_len, key_size;
+	  int usage_found = 0, usage_page_found = 0;
+
+	  while (i < size)
+	    {
+	      int key = report_descriptor[i];
+	      int key_cmd = key & 0xfc;
+
+	      if ((key & 0xf0) == 0xf0)
+		{
+		  fprintf (stderr, "invalid data received.\n");
+		  return -1;
+		}
+	      else
+		{
+		  size_code = key & 0x3;
+		  switch (size_code)
+		    {
+		    case 0:
+		    case 1:
+		    case 2:
+		      data_len = size_code;
+		      break;
+		    case 3:
+		      data_len = 4;
+		      break;
+		    default:
+		      // Can't ever happen since size_code is & 0x3
+		      data_len = 0;
+		      break;
+		    };
+		  key_size = 1;
+		}
+
+	      if (key_cmd == 0x4)
+		{
+		  *usage_page = get_bytes (report_descriptor, size, data_len, i);
+		  usage_page_found = 1;
+		}
+	      if (key_cmd == 0x8)
+		{
+		  *usage = get_bytes (report_descriptor, size, data_len, i);
+		  usage_found = 1;
+		}
+
+	      if (usage_page_found && usage_found)
+		return 0;		// success
+
+	      i += data_len + key_size;
+	    }
+
+	  return -1;			// failure
+	}
+
+
+
+	static int
+	get_usages (struct hid_device_info *dev, unsigned short *usage_page,
+		    unsigned short *usage)
+	{
+	  int res, desc_size;
+	  int ret = -1;
+	  struct hidraw_report_descriptor rpt_desc;
+	  int handle = open (dev->path, O_RDWR);
+	  if (handle > 0)
+	    {
+	      memset (&rpt_desc, 0, sizeof (rpt_desc));
+	      res = ioctl (handle, HIDIOCGRDESCSIZE, &desc_size);
+	      if (res >= 0)
+		{
+		  rpt_desc.size = desc_size;
+		  res = ioctl (handle, HIDIOCGRDESC, &rpt_desc);
+		  if (res >= 0)
+		    {
+		      res =
+			get_usage (rpt_desc.value, rpt_desc.size, usage_page, usage);
+		      if (res >= 0)
+			{
+			  ret = 0;
+			}
+		    }
+		}
+	      close (handle);
+	    }
+	  return ret;
+	}
+
+
 */
 import "C"
 import (
@@ -67,7 +175,7 @@ func Supported() bool {
 //  - If the product id is set to 0 then any product matches.
 //  - If the vendor and product id are both 0, all HID devices are returned.
 func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
-	fmt.Println("Trying to enumerate devices with libusb")
+	fmt.Println("Trying to enumerate devices with hidraw")
 	// Gather all device infos and ensure they are freed before returning
 	head := C.hid_enumerate(C.ushort(vendorID), C.ushort(productID))
 	if head == nil {
@@ -78,13 +186,21 @@ func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 	// Iterate the list and retrieve the device details
 	var infos []DeviceInfo
 	for ; head != nil; head = head.next {
+
+		usage := C.ushort(0)
+		usagePage := C.ushort(0)
+		ok := C.get_usages(head, &usagePage, &usage)
+		if ok != 0 {
+			// TODO: figure out what to do if that failed.
+		}
+
 		info := DeviceInfo{
 			Path:      C.GoString(head.path),
 			VendorID:  uint16(head.vendor_id),
 			ProductID: uint16(head.product_id),
 			Release:   uint16(head.release_number),
-			UsagePage: uint16(head.usage_page),
-			Usage:     uint16(head.usage),
+			UsagePage: uint16(usagePage),
+			Usage:     uint16(usage),
 			Interface: int(head.interface_number),
 		}
 		if head.serial_number != nil {
