@@ -19,7 +19,7 @@ import (
 func TestGowcharSimple(t *testing.T) {
 	str1 := "Привет, 世界. 𪛖"
 	wstr, size := stringToWcharT(str1)
-	switch SIZEOF_WCHAR_T {
+	switch sizeofWcharT {
 	case 2:
 		if size != 15 {
 			t.Errorf("size(%v) != 15", size)
@@ -29,7 +29,7 @@ func TestGowcharSimple(t *testing.T) {
 			t.Errorf("size(%v) != 14", size)
 		}
 	default:
-		panic(fmt.Sprintf("sizeof(wchar_t) = %v", SIZEOF_WCHAR_T))
+		panic(fmt.Sprintf("sizeof(wchar_t) = %v", sizeofWcharT))
 	}
 	str2, err := wcharTToString(wstr)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestGowcharSimple(t *testing.T) {
 func TestGowcharSimpleN(t *testing.T) {
 	str1 := "Привет, 世界. 𪛖"
 	wstr, size := stringToWcharT(str1)
-	switch SIZEOF_WCHAR_T {
+	switch sizeofWcharT {
 	case 2:
 		if size != 15 {
 			t.Errorf("size(%v) != 15", size)
@@ -53,7 +53,7 @@ func TestGowcharSimpleN(t *testing.T) {
 			t.Errorf("size(%v) != 14", size)
 		}
 	default:
-		panic(fmt.Sprintf("sizeof(wchar_t) = %v", SIZEOF_WCHAR_T))
+		panic(fmt.Sprintf("sizeof(wchar_t) = %v", sizeofWcharT))
 	}
 
 	str2, err := wcharTNToString(wstr, size-1)
