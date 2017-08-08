@@ -174,7 +174,6 @@ func Supported() bool {
 //  - If the product id is set to 0 then any product matches.
 //  - If the vendor and product id are both 0, all HID devices are returned.
 func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
-	fmt.Println("Trying to enumerate devices with hidraw")
 	// Gather all device infos and ensure they are freed before returning
 	head := C.hid_enumerate(C.ushort(vendorID), C.ushort(productID))
 	if head == nil {
