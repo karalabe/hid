@@ -1,8 +1,7 @@
 // hid - Gopher Interface Devices (USB HID)
 // Copyright (c) 2017 Péter Szilágyi. All rights reserved.
 //
-// This file is released under the 3-clause BSD license. Note however that Linux
-// support depends on libusb, released under GNU GPL 2.1 or later.
+// This file is released under the 3-clause BSD license. 
 
 // +build linux,hidraw,cgo
 
