@@ -13,12 +13,18 @@ matrix:
       go: 1.7.5
     - os: linux
       dist: trusty
-      go: 1.8
+      go: 1.8.3
     - os: linux
       dist: precise
-      go: 1.8
+      go: 1.8.3
+    - os: linux
+      dist: precise
+      go: 1.9rc2
     - os: osx
-      go: 1.8
+      go: 1.8.3
+    - os: osx
+      go: 1.9rc2
 
 script:
   - go install ./...
+  - go test -v ./...
