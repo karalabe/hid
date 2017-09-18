@@ -57,11 +57,6 @@ import (
 //   > "subsequent calls will cause the hid manager to release previously enumerated devices"
 var enumerateLock sync.Mutex
 
-func init() {
-	// Initialize the HIDAPI library
-	C.hid_init()
-}
-
 // Supported returns whether this platform is supported by the HID library or not.
 // The goal of this method is to allow programatically handling platforms that do
 // not support USB HID and not having to fall back to build constraints.
@@ -77,6 +72,10 @@ func Supported() bool {
 func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 	enumerateLock.Lock()
 	defer enumerateLock.Unlock()
+
+	// Initialize the HIDAPI library
+	var once sync.Once
+	once.Do(func() { C.hid_init() })
 
 	// Gather all device infos and ensure they are freed before returning
 	head := C.hid_enumerate(C.ushort(vendorID), C.ushort(productID))
