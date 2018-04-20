@@ -20,8 +20,11 @@ matrix:
     - os: linux
       dist: precise
       go: 1.9.x
+    - os: linux
+      dist: precise
+      go: 1.10.x
     - os: osx
-      go: 1.9.x
+      go: 1.10.x
 
 script:
   - go install ./...
