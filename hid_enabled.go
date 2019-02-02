@@ -191,9 +191,15 @@ func (dev *Device) Write(b []byte) (int, error) {
 	return written, nil
 }
 
-// Read retrieves an input report from a HID device.
+// Read retrieves an input report from a HID device, blocking and waiting for a response
 func (dev *Device) Read(b []byte) (int, error) {
-	// Aborth if nothing to read
+	return dev.ReadTimeout(b, 0)
+}
+
+// ReadTimeout retrieves an input report from a HID device with a timeout. If timeout is 0 a
+// blocking read is performed.
+func (dev *Device) ReadTimeout(b []byte, timeout int) (int, error) {
+	// Abort if nothing to read
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -206,7 +212,7 @@ func (dev *Device) Read(b []byte) (int, error) {
 		return 0, ErrDeviceClosed
 	}
 	// Execute the read operation
-	read := int(C.hid_read(device, (*C.uchar)(&b[0]), C.size_t(len(b))))
+	read := int(C.hid_read_timeout(device, (*C.uchar)(&b[0]), C.size_t(len(b)), C.int(timeout)))
 	if read == -1 {
 		// If the read failed, verify if closed or other error
 		dev.lock.Lock()
