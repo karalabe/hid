@@ -22,30 +22,50 @@ func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 	return nil
 }
 
-// Device is a live HID USB connected device handle. On platforms that this file
+// HidDevice is a live HID USB connected device handle. On platforms that this file
 // implements the type lacks the actual HID device and all methods are noop.
-type Device struct {
-	DeviceInfo // Embed the infos for easier access
+type HidDevice struct {
+	HidDeviceInfo // Embed the infos for easier access
 }
 
 // Open connects to an HID device by its path name. On platforms that this file
 // implements the method just returns an error.
-func (info DeviceInfo) Open() (*Device, error) {
+func (info HidDeviceInfo) Open() (*Device, error) {
 	return nil, ErrUnsupportedPlatform
 }
 
 // Close releases the HID USB device handle. On platforms that this file implements
 // the method is just a noop.
-func (dev *Device) Close() error { return nil }
+func (dev *HidDevice) Close() error { return nil }
 
 // Write sends an output report to a HID device. On platforms that this file
 // implements the method just returns an error.
-func (dev *Device) Write(b []byte) (int, error) {
+func (dev *HidDevice) Write(b []byte) (int, error) {
 	return 0, ErrUnsupportedPlatform
 }
 
+// GenericDeviceHandle represents a libusb device_handle struct
+type GenericDeviceHandle *C.struct_libusb_device_handle
+
+// GenericLibUsbDevice represents a libusb device struct
+type GenericLibUsbDevice *C.struct_libusb_device
+
 // Read retrieves an input report from a HID device. On platforms that this file
 // implements the method just returns an error.
-func (dev *Device) Read(b []byte) (int, error) {
+func (dev *HidDevice) Read(b []byte) (int, error) {
 	return 0, ErrUnsupportedPlatform
+}
+
+// GenericDeviceOpen is a helper function to call the C version of open.
+func GenericDeviceOpen(dev GenericLibUsbDevice) (GenericDeviceHandle, error) {
+	return nil, ErrUnsupportedPlatform
+}
+
+// GenericDeviceClose is a helper function to close a libusb device
+func GenericDeviceClose(handle GenericDeviceHandle) {
+}
+
+// InterruptTransfer is a helpler function for libusb's interrupt transfer function
+func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, timeout uint) ([]byte, error) {
+	return data[:0], ErrUnsupportedPlatform
 }
