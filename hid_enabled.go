@@ -39,6 +39,10 @@ package hid
 #elif OS_WINDOWS
 	#include "hidapi/windows/hid.c"
 #endif
+
+	struct libusb_device *libusb_next_device(libusb_device *current) {
+		return list_entry(current->list.next, struct libusb_device, list);
+	}
 */
 import "C"
 
@@ -91,16 +95,18 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 	}
 	defer C.libusb_free_device_list(deviceListPtr, C.int(count))
 
-	var deviceList []C.struct_libusb_device
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&deviceList))
-	header.Cap = int(count)
-	header.Len = int(count)
-	header.Data = uintptr(unsafe.Pointer(deviceListPtr))
+	deviceList := make([]*C.struct_libusb_device, count)
+	var curDev *C.struct_libusb_device
+	curDev = *deviceListPtr
+	for numdev := 0; numdev < int(count); numdev++ {
+		deviceList[numdev] = curDev
+		curDev = C.libusb_next_device(curDev)
+	}
 
 DEVLOOP:
 	for devnum, dev := range deviceList {
 		var descriptor C.struct_libusb_device_descriptor
-		errCode := int(C.libusb_get_device_descriptor(&dev, &descriptor))
+		errCode := int(C.libusb_get_device_descriptor(dev, &descriptor))
 		if errCode != 0 {
 			return nil, fmt.Errorf("Error code %d while enumerating generic device, skipping", errCode)
 		}
@@ -111,7 +117,7 @@ DEVLOOP:
 			/* Device class is specified at interface level */
 			for cfgnum := 0; cfgnum < int(descriptor.bNumConfigurations); cfgnum++ {
 				var cfgdesc *C.struct_libusb_config_descriptor
-				errCode = int(C.libusb_get_config_descriptor(&dev, (C.uint8_t)(cfgnum), &cfgdesc))
+				errCode = int(C.libusb_get_config_descriptor(dev, (C.uint8_t)(cfgnum), &cfgdesc))
 				if errCode != 0 {
 					return nil, fmt.Errorf("Error getting device configuration #%d for generic device %d: %d", cfgnum, devnum, errCode)
 				}
@@ -144,11 +150,12 @@ DEVLOOP:
 		// list if they correspond to something we are looking for.
 		if uint16(descriptor.idVendor) == vendorID && uint16(descriptor.idProduct) == productID {
 			info := &GenericDeviceInfo{
-				Path:      fmt.Sprintf("%x:%x:%d", vendorID, productID, uint8(C.libusb_get_port_number(&dev))),
+				Path:      fmt.Sprintf("%x:%x:%d", vendorID, productID, uint8(C.libusb_get_port_number(dev))),
 				VendorID:  uint16(descriptor.idVendor),
 				ProductID: uint16(descriptor.idProduct),
 
-				Device: &dev,
+				Device: dev,
+
 			}
 			infos = append(infos, info)
 		}
