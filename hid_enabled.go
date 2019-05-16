@@ -40,9 +40,11 @@ package hid
 	#include "hidapi/windows/hid.c"
 #endif
 
-	struct libusb_device *libusb_next_device(libusb_device *current) {
+#if defined(OS_LINUX) || defined(OS_DARWIN) || defined(OS_WINDOWS)
+	struct libusb_device *libusb_next_device(struct libusb_device *current) {
 		return list_entry(current->list.next, struct libusb_device, list);
 	}
+#endif
 */
 import "C"
 
@@ -105,17 +107,17 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 
 DEVLOOP:
 	for devnum, dev := range deviceList {
-		var descriptor C.struct_libusb_device_descriptor
-		errCode := int(C.libusb_get_device_descriptor(dev, &descriptor))
-		if errCode != 0 {
-			return nil, fmt.Errorf("Error code %d while enumerating generic device, skipping", errCode)
+
+		// Start by checking the vendor id and the product id if necessary
+		if uint16(dev.device_descriptor.idVendor) != vendorID || !(productID == 0 || uint16(dev.device_descriptor.idProduct) == productID) {
+			continue
 		}
 
 		// Skip HID devices, they will be handled later
-		switch descriptor.bDeviceClass {
+		switch dev.device_descriptor.bDeviceClass {
 		case 0:
 			/* Device class is specified at interface level */
-			for cfgnum := 0; cfgnum < int(descriptor.bNumConfigurations); cfgnum++ {
+			for cfgnum := 0; cfgnum < int(dev.device_descriptor.bNumConfigurations); cfgnum++ {
 				var cfgdesc *C.struct_libusb_config_descriptor
 				errCode = int(C.libusb_get_config_descriptor(dev, (C.uint8_t)(cfgnum), &cfgdesc))
 				if errCode != 0 {
@@ -126,12 +128,14 @@ DEVLOOP:
 				ifshdr := (*reflect.SliceHeader)(unsafe.Pointer(&ifs))
 				ifshdr.Cap = int(cfgdesc.bNumInterfaces)
 				ifshdr.Len = int(cfgdesc.bNumInterfaces)
+				ifshdr.Data = uintptr(unsafe.Pointer(cfgdesc._interface))
 
 				for _, ifc := range ifs {
 					var ifdescs []C.struct_libusb_interface_descriptor
 					ifdshdr := (*reflect.SliceHeader)(unsafe.Pointer(&ifdescs))
 					ifdshdr.Cap = int(ifc.num_altsetting)
 					ifdshdr.Len = int(ifc.num_altsetting)
+					ifdshdr.Data = uintptr(unsafe.Pointer(ifc.altsetting))
 
 					for _, alt := range ifdescs {
 						if alt.bInterfaceClass == 3 {
@@ -146,19 +150,15 @@ DEVLOOP:
 			continue
 		}
 
-		// Device isn't a HID interface, check its vendor and product ids and add them to the device
-		// list if they correspond to something we are looking for.
-		if uint16(descriptor.idVendor) == vendorID && uint16(descriptor.idProduct) == productID {
-			info := &GenericDeviceInfo{
-				Path:      fmt.Sprintf("%x:%x:%d", vendorID, productID, uint8(C.libusb_get_port_number(dev))),
-				VendorID:  uint16(descriptor.idVendor),
-				ProductID: uint16(descriptor.idProduct),
+		// Device isn't a HID interface, add them to the device list.
+		info := &GenericDeviceInfo{
+			Path:      fmt.Sprintf("%x:%x:%d", vendorID, productID, uint8(C.libusb_get_port_number(dev))),
+			VendorID:  uint16(dev.device_descriptor.idVendor),
+			ProductID: uint16(dev.device_descriptor.idProduct),
 
-				Device: dev,
-
-			}
-			infos = append(infos, info)
+			Device: dev,
 		}
+		infos = append(infos, info)
 	}
 
 	// Gather all device infos and ensure they are freed before returning
@@ -311,6 +311,11 @@ func (dev *HidDevice) Read(b []byte) (int, error) {
 		return 0, errors.New("hidapi: " + failure)
 	}
 	return read, nil
+}
+
+// Type identify the device as a HID device
+func (dev *HidDevice) Type() DeviceType {
+	return dev.DeviceInfo.Type()
 }
 
 // GenericDeviceHandle represents a libusb device_handle struct

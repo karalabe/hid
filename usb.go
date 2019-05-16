@@ -10,9 +10,10 @@ package hid
 // DeviceType represents the type of a USB device (generic or HID)
 type DeviceType int
 
+// List of supported device types
 const (
 	DeviceTypeGeneric DeviceType = 0
-	DeviceTypeHID     DeviceType = 0
+	DeviceTypeHID     DeviceType = 1
 )
 
 // Enumerate returns a list of all the HID devices attached to the system which
@@ -25,6 +26,7 @@ const (
 
 // DeviceInfo is a generic libusb info interface
 type DeviceInfo interface {
+	// Type returns the type of the device (generic or HID)
 	Type() DeviceType
 
 	// Platform-specific device path
@@ -37,11 +39,14 @@ type DeviceInfo interface {
 	Open() (Device, error)
 }
 
-// DeviceInfo is a generic libusb device interface
+// Device is a generic libusb device interface
 type Device interface {
 	Close() error
 
 	Write(b []byte) (int, error)
 
 	Read(b []byte) (int, error)
+
+	// Type returns the type of the device (generic or HID)
+	Type() DeviceType
 }
