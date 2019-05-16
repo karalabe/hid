@@ -42,8 +42,8 @@ func (hdi *HidDeviceInfo) GetPath() string {
 }
 
 // IDs returns the vendor and product id of the device
-func (hdi *HidDeviceInfo) IDs() (uint16, uint16) {
-	return hdi.VendorID, hdi.ProductID
+func (hdi *HidDeviceInfo) IDs() (uint16, uint16, int, uint16) {
+	return hdi.VendorID, hdi.ProductID, hdi.Interface, hdi.UsagePage
 }
 
 // Type returns the type of the device (HID or generic)

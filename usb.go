@@ -32,8 +32,9 @@ type DeviceInfo interface {
 	// Platform-specific device path
 	GetPath() string
 
-	// IDs returns the vendor and product IDs for the device
-	IDs() (uint16, uint16)
+	// IDs returns the vendor and product IDs for the device,
+	// as well as the endpoint id and the usage page.
+	IDs() (uint16, uint16, int, uint16)
 
 	// Open tries to open the USB device represented by the current DeviceInfo
 	Open() (Device, error)

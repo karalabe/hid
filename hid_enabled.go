@@ -105,7 +105,6 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 		curDev = C.libusb_next_device(curDev)
 	}
 
-DEVLOOP:
 	for devnum, dev := range deviceList {
 
 		// Start by checking the vendor id and the product id if necessary
@@ -130,7 +129,7 @@ DEVLOOP:
 				ifshdr.Len = int(cfgdesc.bNumInterfaces)
 				ifshdr.Data = uintptr(unsafe.Pointer(cfgdesc._interface))
 
-				for _, ifc := range ifs {
+				for ifnum, ifc := range ifs {
 					var ifdescs []C.struct_libusb_interface_descriptor
 					ifdshdr := (*reflect.SliceHeader)(unsafe.Pointer(&ifdescs))
 					ifdshdr.Cap = int(ifc.num_altsetting)
@@ -138,9 +137,37 @@ DEVLOOP:
 					ifdshdr.Data = uintptr(unsafe.Pointer(ifc.altsetting))
 
 					for _, alt := range ifdescs {
-						if alt.bInterfaceClass == 3 {
-							// Interface class is HID, skip device
-							continue DEVLOOP
+						if alt.bInterfaceClass != 3 {
+							// Device isn't a HID interface, add them to the device list.
+
+							var endps []C.struct_libusb_endpoint_descriptor
+							endpshdr := (*reflect.SliceHeader)(unsafe.Pointer(&endps))
+							endpshdr.Cap = int(alt.bNumEndpoints)
+							endpshdr.Len = int(alt.bNumEndpoints)
+							endpshdr.Data = uintptr(unsafe.Pointer(alt.endpoint))
+
+							endpoints := make([]GenericEndpoint, alt.bNumEndpoints)
+
+							for ne, endpoint := range endps {
+								endpoints[ne] = GenericEndpoint{
+									Direction:  GenericEndpointDirection(endpoint.bEndpointAddress) & GenericEndpointDirectionIn,
+									Address:    uint8(endpoint.bEndpointAddress),
+									Attributes: uint8(endpoint.bmAttributes),
+								}
+							}
+
+							info := &GenericDeviceInfo{
+								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(dev.device_descriptor.idProduct), uint8(C.libusb_get_port_number(dev))),
+								VendorID:  uint16(dev.device_descriptor.idVendor),
+								ProductID: uint16(dev.device_descriptor.idProduct),
+
+								Device: dev,
+
+								Endpoints: endpoints,
+
+								Interface: ifnum,
+							}
+							infos = append(infos, info)
 						}
 					}
 				}
@@ -149,16 +176,6 @@ DEVLOOP:
 			// Device class is HID, skip it
 			continue
 		}
-
-		// Device isn't a HID interface, add them to the device list.
-		info := &GenericDeviceInfo{
-			Path:      fmt.Sprintf("%x:%x:%d", vendorID, productID, uint8(C.libusb_get_port_number(dev))),
-			VendorID:  uint16(dev.device_descriptor.idVendor),
-			ProductID: uint16(dev.device_descriptor.idProduct),
-
-			Device: dev,
-		}
-		infos = append(infos, info)
 	}
 
 	// Gather all device infos and ensure they are freed before returning
