@@ -43,15 +43,26 @@ package hid
     #include <stdlib.h>
 	#include <libusb.h>
 	#include "hidapi/libusb/hid.c"
-
-	struct libusb_device *libusb_next_device(struct libusb_device *current) {
-			return NULL;
-    }
 #endif
 
-#if defined(OS_LINUX) || defined(OS_DARWIN) || defined(OS_WINDOWS)
-	struct libusb_device *libusb_next_device(struct libusb_device *current) {
-		return list_entry(current->list.next, struct libusb_device, list);
+#if defined(OS_LINUX) || defined(OS_WINDOWS)
+	void copy_device_list_to_slice(struct libusb_device **data, struct libusb_device **list, int count)
+	{
+		struct libusb_device *current = *list;
+		for (int i=0; i<count; i++)
+		{
+			 data[i] = current;
+			 current = list_entry(current->list.next, struct libusb_device, list);
+		}
+	}
+#elif defined(OS_DARWIN) || defined(__FreeBSD__)
+	void copy_device_list_to_slice(struct libusb_device **data, struct libusb_device **list, int count)
+	{
+		// No memcopy because the struct size isn't available for a sizeof()
+		for (int i=0; i<count; i++)
+		{
+			data[i] = list[i];
+		}
 	}
 #endif
 */
@@ -107,12 +118,8 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 	defer C.libusb_free_device_list(deviceListPtr, C.int(count))
 
 	deviceList := make([]*C.struct_libusb_device, count)
-	var curDev *C.struct_libusb_device
-	curDev = *deviceListPtr
-	for numdev := 0; numdev < int(count); numdev++ {
-		deviceList[numdev] = curDev
-		curDev = C.libusb_next_device(curDev)
-	}
+	dlhdr := (*reflect.SliceHeader)(unsafe.Pointer(&deviceList))
+	C.copy_device_list_to_slice((**C.struct_libusb_device)(unsafe.Pointer(dlhdr.Data)), deviceListPtr, C.int(count))
 
 	for devnum, dev := range deviceList {
 		var desc C.struct_libusb_device_descriptor
