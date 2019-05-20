@@ -4,7 +4,7 @@
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under LGNU GPL 2.1 or later.
 
-// +build linux,cgo darwin,!ios,cgo windows,cgo
+// +build freebsd,cgo linux,cgo darwin,!ios,cgo windows,cgo
 
 package hid
 
@@ -17,6 +17,7 @@ package hid
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
 #cgo windows CFLAGS: -DOS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
+#cgo freebsd LDFLAGS: -lusb
 
 #ifdef OS_LINUX
 	#include <poll.h>
@@ -38,6 +39,14 @@ package hid
 	#include "hidapi/mac/hid.c"
 #elif OS_WINDOWS
 	#include "hidapi/windows/hid.c"
+#elif defined(__FreeBSD__)
+    #include <stdlib.h>
+	#include <libusb.h>
+	#include "hidapi/libusb/hid.c"
+
+	struct libusb_device *libusb_next_device(struct libusb_device *current) {
+			return NULL;
+    }
 #endif
 
 #if defined(OS_LINUX) || defined(OS_DARWIN) || defined(OS_WINDOWS)
@@ -106,19 +115,24 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 	}
 
 	for devnum, dev := range deviceList {
+		var desc C.struct_libusb_device_descriptor
+		errCode := int(C.libusb_get_device_descriptor(dev, &desc))
+		if errCode < 0 {
+			return nil, fmt.Errorf("Error getting device descriptor for generic device %d: %d", devnum, errCode)
+		}
 
 		// Start by checking the vendor id and the product id if necessary
-		if uint16(dev.device_descriptor.idVendor) != vendorID || !(productID == 0 || uint16(dev.device_descriptor.idProduct) == productID) {
+		if uint16(desc.idVendor) != vendorID || !(productID == 0 || uint16(desc.idProduct) == productID) {
 			continue
 		}
 
 		// Skip HID devices, they will be handled later
-		switch dev.device_descriptor.bDeviceClass {
+		switch desc.bDeviceClass {
 		case 0:
 			/* Device class is specified at interface level */
-			for cfgnum := 0; cfgnum < int(dev.device_descriptor.bNumConfigurations); cfgnum++ {
+			for cfgnum := 0; cfgnum < int(desc.bNumConfigurations); cfgnum++ {
 				var cfgdesc *C.struct_libusb_config_descriptor
-				errCode = int(C.libusb_get_config_descriptor(dev, (C.uint8_t)(cfgnum), &cfgdesc))
+				errCode = int(C.libusb_get_config_descriptor(dev, C.uint8_t(cfgnum), &cfgdesc))
 				if errCode != 0 {
 					return nil, fmt.Errorf("Error getting device configuration #%d for generic device %d: %d", cfgnum, devnum, errCode)
 				}
@@ -157,9 +171,9 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 							}
 
 							info := &GenericDeviceInfo{
-								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(dev.device_descriptor.idProduct), uint8(C.libusb_get_port_number(dev))),
-								VendorID:  uint16(dev.device_descriptor.idVendor),
-								ProductID: uint16(dev.device_descriptor.idProduct),
+								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(desc.idProduct), uint8(C.libusb_get_port_number(dev))),
+								VendorID:  uint16(desc.idVendor),
+								ProductID: uint16(desc.idProduct),
 
 								Device: dev,
 
