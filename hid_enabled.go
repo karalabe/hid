@@ -48,8 +48,9 @@ package hid
 #if defined(OS_LINUX) || defined(OS_WINDOWS)
 	void copy_device_list_to_slice(struct libusb_device **data, struct libusb_device **list, int count)
 	{
+		int i;
 		struct libusb_device *current = *list;
-		for (int i=0; i<count; i++)
+		for (i=0; i<count; i++)
 		{
 			 data[i] = current;
 			 current = list_entry(current->list.next, struct libusb_device, list);
@@ -58,13 +59,19 @@ package hid
 #elif defined(OS_DARWIN) || defined(__FreeBSD__)
 	void copy_device_list_to_slice(struct libusb_device **data, struct libusb_device **list, int count)
 	{
+		int i;
 		// No memcopy because the struct size isn't available for a sizeof()
-		for (int i=0; i<count; i++)
+		for (i=0; i<count; i++)
 		{
 			data[i] = list[i];
 		}
 	}
 #endif
+
+const char *usb_strerror(int err)
+{
+	return libusb_strerror(err);
+}
 */
 import "C"
 
@@ -382,7 +389,7 @@ func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, 
 	var transferred C.int
 	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(timeout)))
 	if errCode != 0 {
-		return nil, fmt.Errorf("Interrupt transfer error: %s", C.libusb_strerror(errCode))
+		return nil, fmt.Errorf("Interrupt transfer error: %s", C.usb_strerror(C.int(errCode)))
 	}
 	return data[:int(transferred)], nil
 }
