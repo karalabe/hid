@@ -382,7 +382,7 @@ func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, 
 	var transferred C.int
 	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(timeout)))
 	if errCode != 0 {
-		return nil, fmt.Errorf("Interrupt transfer error, code %d", errCode)
+		return nil, fmt.Errorf("Interrupt transfer error: %s", C.libusb_strerror(errCode))
 	}
 	return data[:int(transferred)], nil
 }
