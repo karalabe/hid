@@ -13,10 +13,11 @@ package hid
 
 #cgo linux CFLAGS: -I./libusb/libusb -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
 #cgo linux,!android LDFLAGS: -lrt
-#cgo darwin CFLAGS: -DOS_DARWIN
-#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
+#cgo darwin CFLAGS: -DOS_DARWIN -I./libusb/libusb
+#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lusb-1.0.0
 #cgo windows CFLAGS: -DOS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
+#cgo freebsd CFLAGS: -DOS_FREEBSD
 #cgo freebsd LDFLAGS: -lusb
 
 #ifdef OS_LINUX
@@ -36,10 +37,11 @@ package hid
 
 	#include "hidapi/libusb/hid.c"
 #elif OS_DARWIN
+	#include <libusb.h>
 	#include "hidapi/mac/hid.c"
 #elif OS_WINDOWS
 	#include "hidapi/windows/hid.c"
-#elif defined(__FreeBSD__)
+#elif OS_FREEBSD
     #include <stdlib.h>
 	#include <libusb.h>
 	#include "hidapi/libusb/hid.c"
@@ -56,7 +58,7 @@ package hid
 			 current = list_entry(current->list.next, struct libusb_device, list);
 		}
 	}
-#elif defined(OS_DARWIN) || defined(__FreeBSD__)
+#elif defined(OS_DARWIN) || defined(OS_FREEBSD)
 	void copy_device_list_to_slice(struct libusb_device **data, struct libusb_device **list, int count)
 	{
 		int i;
@@ -389,7 +391,7 @@ func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, 
 	var transferred C.int
 	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(timeout)))
 	if errCode != 0 {
-		return nil, fmt.Errorf("Interrupt transfer error: %s", C.usb_strerror(C.int(errCode)))
+		return nil, fmt.Errorf("Interrupt transfer error: %s", C.GoString(C.usb_strerror(C.int(errCode))))
 	}
 	return data[:int(transferred)], nil
 }

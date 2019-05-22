@@ -45,10 +45,10 @@ func (dev *HidDevice) Write(b []byte) (int, error) {
 }
 
 // GenericDeviceHandle represents a libusb device_handle struct
-type GenericDeviceHandle *C.struct_libusb_device_handle
+type GenericDeviceHandle interface{}
 
 // GenericLibUsbDevice represents a libusb device struct
-type GenericLibUsbDevice *C.struct_libusb_device
+type GenericLibUsbDevice interface{}
 
 // Read retrieves an input report from a HID device. On platforms that this file
 // implements the method just returns an error.
