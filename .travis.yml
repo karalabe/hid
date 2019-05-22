@@ -18,10 +18,10 @@ matrix:
       dist: trusty
       go: 1.9.x
     - os: linux
-      dist: precise
+      dist: xenial
       go: 1.9.x
     - os: linux
-      dist: precise
+      dist: xenial
       go: 1.10.x
     - os: osx
       go: 1.10.x
