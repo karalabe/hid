@@ -194,7 +194,7 @@ func (dev *Device) Write(b []byte) (int, error) {
 
 // Read retrieves an input report from a HID device.
 func (dev *Device) Read(b []byte) (int, error) {
-	// Aborth if nothing to read
+	// Abort if nothing to read
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -229,7 +229,7 @@ func (dev *Device) Read(b []byte) (int, error) {
 }
 
 func (dev *Device) ReadTimeout(b []byte, timeout int) (int, error) {
-	// Aborth if nothing to read
+	// Abort if nothing to read
 	if len(b) == 0 {
 		return 0, nil
 	}
