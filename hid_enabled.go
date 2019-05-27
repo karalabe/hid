@@ -102,17 +102,9 @@ func Supported() bool {
 	return true
 }
 
-// Enumerate returns a list of all the HID devices attached to the system which
-// match the vendor and product id:
-//  - If the vendor id is set to 0 then any vendor matches.
-//  - If the product id is set to 0 then any product matches.
-//  - If the vendor and product id are both 0, all HID devices are returned.
-func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
-	enumerateLock.Lock()
-	defer enumerateLock.Unlock()
-
+// genericEnumerate performs generic USB device enumeration
+func genericEnumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 	var infos []DeviceInfo
-
 	var ctx *C.struct_libusb_context
 	errCode := int(C.libusb_init((**C.struct_libusb_context)(&ctx)))
 	if errCode < 0 {
@@ -190,11 +182,8 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(desc.idProduct), uint8(C.libusb_get_port_number(dev))),
 								VendorID:  uint16(desc.idVendor),
 								ProductID: uint16(desc.idProduct),
-
-								Device: dev,
-
+								Device:    dev,
 								Endpoints: endpoints,
-
 								Interface: ifnum,
 							}
 							infos = append(infos, info)
@@ -206,6 +195,24 @@ func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 			// Device class is HID, skip it
 			continue
 		}
+	}
+
+	return infos, nil
+}
+
+// Enumerate returns a list of all the HID devices attached to the system which
+// match the vendor and product id:
+//  - If the vendor id is set to 0 then any vendor matches.
+//  - If the product id is set to 0 then any product matches.
+//  - If the vendor and product id are both 0, all HID devices are returned.
+func Enumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
+	enumerateLock.Lock()
+	defer enumerateLock.Unlock()
+
+	infos, err := genericEnumerate(vendorID, productID)
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Gather all device infos and ensure they are freed before returning
