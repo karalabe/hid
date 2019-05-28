@@ -83,7 +83,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"time"
 	"unsafe"
 )
 
@@ -418,7 +417,7 @@ func (gd *GenericDevice) Write(b []byte) (int, error) {
 	gd.lock.Lock()
 	defer gd.lock.Unlock()
 
-	out, err := interruptTransfer(gd.device, gd.WEndpoint, b, 0)
+	out, err := interruptTransfer(gd.device, gd.WEndpoint, b)
 	return len(out), err
 }
 
@@ -427,7 +426,7 @@ func (gd *GenericDevice) Read(b []byte) (int, error) {
 	gd.lock.Lock()
 	defer gd.lock.Unlock()
 
-	out, err := interruptTransfer(gd.device, gd.REndpoint, b, 0)
+	out, err := interruptTransfer(gd.device, gd.REndpoint, b)
 	return len(out), err
 }
 
@@ -445,9 +444,9 @@ func (gd *GenericDevice) Close() error {
 }
 
 // interruptTransfer is a helpler function for libusb's interrupt transfer function
-func interruptTransfer(handle *C.struct_libusb_device_handle, endpoint uint8, data []byte, timeout uint) ([]byte, error) {
+func interruptTransfer(handle *C.struct_libusb_device_handle, endpoint uint8, data []byte) ([]byte, error) {
 	var transferred C.int
-	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(timeout)))
+	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(0)))
 	if errCode != 0 {
 		return nil, fmt.Errorf("Interrupt transfer error: %s", C.GoString(C.usb_strerror(C.int(errCode))))
 	}
