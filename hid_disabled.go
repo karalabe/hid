@@ -36,7 +36,7 @@ func (info HidDeviceInfo) Open() (*Device, error) {
 
 // Close releases the HID USB device handle. On platforms that this file implements
 // the method is just a noop.
-func (dev *HidDevice) Close() error { return nil }
+func (dev *HidDevice) Close() error { return ErrUnsupportedPlatform }
 
 // Write sends an output report to a HID device. On platforms that this file
 // implements the method just returns an error.
@@ -44,28 +44,33 @@ func (dev *HidDevice) Write(b []byte) (int, error) {
 	return 0, ErrUnsupportedPlatform
 }
 
-// GenericDeviceHandle represents a libusb device_handle struct
-type GenericDeviceHandle interface{}
-
-// GenericLibUsbDevice represents a libusb device struct
-type GenericLibUsbDevice interface{}
-
 // Read retrieves an input report from a HID device. On platforms that this file
 // implements the method just returns an error.
 func (dev *HidDevice) Read(b []byte) (int, error) {
 	return 0, ErrUnsupportedPlatform
 }
 
-// GenericDeviceOpen is a helper function to call the C version of open.
-func GenericDeviceOpen(dev GenericLibUsbDevice) (GenericDeviceHandle, error) {
+// Open tries to open the USB device represented by the current DeviceInfo
+func (gdi *GenericDeviceInfo) Open() (Device, error) {
 	return nil, ErrUnsupportedPlatform
 }
 
-// GenericDeviceClose is a helper function to close a libusb device
-func GenericDeviceClose(handle GenericDeviceHandle) {
+// GenericDevice represents a generic USB device
+type GenericDevice struct {
+	*GenericDeviceInfo // Embed the infos for easier access
 }
 
-// InterruptTransfer is a helpler function for libusb's interrupt transfer function
-func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, timeout uint) ([]byte, error) {
-	return data[:0], ErrUnsupportedPlatform
+// Write implements io.ReaderWriter
+func (gd *GenericDevice) Write(b []byte) (int, error) {
+	return 0, ErrUnsupportedPlatform
+}
+
+// Read implements io.ReaderWriter
+func (gd *GenericDevice) Read(b []byte) (int, error) {
+	return 0, ErrUnsupportedPlatform
+}
+
+// Close a previously opened generic USB device
+func (gd *GenericDevice) Close() error {
+	return ErrUnsupportedPlatform
 }

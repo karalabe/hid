@@ -83,6 +83,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -182,7 +183,7 @@ func genericEnumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(desc.idProduct), uint8(C.libusb_get_port_number(dev))),
 								VendorID:  uint16(desc.idVendor),
 								ProductID: uint16(desc.idProduct),
-								Device:    dev,
+								device:    dev,
 								Endpoints: endpoints,
 								Interface: ifnum,
 							}
@@ -372,29 +373,79 @@ func (dev *HidDevice) Type() DeviceType {
 	return dev.DeviceInfo.Type()
 }
 
-// GenericDeviceHandle represents a libusb device_handle struct
-type GenericDeviceHandle *C.struct_libusb_device_handle
-
-// GenericLibUsbDevice represents a libusb device struct
-type GenericLibUsbDevice *C.struct_libusb_device
-
-// GenericDeviceOpen is a helper function to call the C version of open.
-func GenericDeviceOpen(dev GenericLibUsbDevice) (GenericDeviceHandle, error) {
-	var handle GenericDeviceHandle
-	errCode := int(C.libusb_open(dev, (**C.struct_libusb_device_handle)(&handle)))
+// Open tries to open the USB device represented by the current DeviceInfo
+func (gdi *GenericDeviceInfo) Open() (Device, error) {
+	var handle *C.struct_libusb_device_handle
+	errCode := int(C.libusb_open(gdi.device, (**C.struct_libusb_device_handle)(&handle)))
 	if errCode < 0 {
-		return nil, fmt.Errorf("Error opening generic USB device %v, code %d", dev, errCode)
+		return nil, fmt.Errorf("Error opening generic USB device %v, code %d", gdi.device, errCode)
 	}
-	return handle, nil
+
+	newDev := &GenericDevice{
+		GenericDeviceInfo: gdi,
+		device:            handle,
+	}
+
+	for _, endpoint := range gdi.Endpoints {
+		switch {
+		case endpoint.Direction == GenericEndpointDirectionOut && endpoint.Attributes == GenericEndpointAttributeInterrupt:
+			newDev.WEndpoint = endpoint.Address
+		case endpoint.Direction == GenericEndpointDirectionIn && endpoint.Attributes == GenericEndpointAttributeInterrupt:
+			newDev.REndpoint = endpoint.Address
+		}
+	}
+
+	if newDev.REndpoint == 0 || newDev.WEndpoint == 0 {
+		return nil, fmt.Errorf("Missing endpoint in device %#x:%#x:%d", gdi.VendorID, gdi.ProductID, gdi.Interface)
+	}
+
+	return newDev, nil
 }
 
-// GenericDeviceClose is a helper function to close a libusb device
-func GenericDeviceClose(handle GenericDeviceHandle) {
-	C.libusb_close(handle)
+// GenericDevice represents a generic USB device
+type GenericDevice struct {
+	*GenericDeviceInfo // Embed the infos for easier access
+
+	REndpoint uint8
+	WEndpoint uint8
+
+	device *C.struct_libusb_device_handle
+	lock   sync.Mutex
 }
 
-// InterruptTransfer is a helpler function for libusb's interrupt transfer function
-func InterruptTransfer(handle GenericDeviceHandle, endpoint uint8, data []byte, timeout uint) ([]byte, error) {
+// Write implements io.ReaderWriter
+func (gd *GenericDevice) Write(b []byte) (int, error) {
+	gd.lock.Lock()
+	defer gd.lock.Unlock()
+
+	out, err := interruptTransfer(gd.device, gd.WEndpoint, b, 0)
+	return len(out), err
+}
+
+// Read implements io.ReaderWriter
+func (gd *GenericDevice) Read(b []byte) (int, error) {
+	gd.lock.Lock()
+	defer gd.lock.Unlock()
+
+	out, err := interruptTransfer(gd.device, gd.REndpoint, b, 0)
+	return len(out), err
+}
+
+// Close a previously opened generic USB device
+func (gd *GenericDevice) Close() error {
+	gd.lock.Lock()
+	defer gd.lock.Unlock()
+
+	if gd.device != nil {
+		C.libusb_close(gd.device)
+		gd.device = nil
+	}
+
+	return nil
+}
+
+// interruptTransfer is a helpler function for libusb's interrupt transfer function
+func interruptTransfer(handle *C.struct_libusb_device_handle, endpoint uint8, data []byte, timeout uint) ([]byte, error) {
 	var transferred C.int
 	errCode := int(C.libusb_interrupt_transfer(handle, (C.uchar)(endpoint), (*C.uchar)(&data[0]), (C.int)(len(data)), &transferred, (C.uint)(timeout)))
 	if errCode != 0 {
