@@ -182,10 +182,13 @@ func genericEnumerate(vendorID uint16, productID uint16) ([]DeviceInfo, error) {
 								Path:      fmt.Sprintf("%x:%x:%d", vendorID, uint16(desc.idProduct), uint8(C.libusb_get_port_number(dev))),
 								VendorID:  uint16(desc.idVendor),
 								ProductID: uint16(desc.idProduct),
-								device:    dev,
+								device: &GenericDevice{
+									device: dev,
+								},
 								Endpoints: endpoints,
 								Interface: ifnum,
 							}
+							info.device.GenericDeviceInfo = info
 							infos = append(infos, info)
 						}
 					}
@@ -375,30 +378,31 @@ func (dev *HidDevice) Type() DeviceType {
 // Open tries to open the USB device represented by the current DeviceInfo
 func (gdi *GenericDeviceInfo) Open() (Device, error) {
 	var handle *C.struct_libusb_device_handle
-	errCode := int(C.libusb_open(gdi.device, (**C.struct_libusb_device_handle)(&handle)))
+	errCode := int(C.libusb_open(gdi.device.device, (**C.struct_libusb_device_handle)(&handle)))
 	if errCode < 0 {
-		return nil, fmt.Errorf("Error opening generic USB device %v, code %d", gdi.device, errCode)
+		return nil, fmt.Errorf("Error opening generic USB device %v, code %d", gdi.device.handle, errCode)
 	}
 
-	newDev := &GenericDevice{
-		GenericDeviceInfo: gdi,
-		device:            handle,
-	}
+	gdi.device.handle = handle
+	// QUESTION: ai-je deja initialie le GDI ?
+	// 	GenericDeviceInfo: gdi,
+	// 	handle:            handle,
+	// }
 
 	for _, endpoint := range gdi.Endpoints {
 		switch {
 		case endpoint.Direction == GenericEndpointDirectionOut && endpoint.Attributes == GenericEndpointAttributeInterrupt:
-			newDev.WEndpoint = endpoint.Address
+			gdi.device.WEndpoint = endpoint.Address
 		case endpoint.Direction == GenericEndpointDirectionIn && endpoint.Attributes == GenericEndpointAttributeInterrupt:
-			newDev.REndpoint = endpoint.Address
+			gdi.device.REndpoint = endpoint.Address
 		}
 	}
 
-	if newDev.REndpoint == 0 || newDev.WEndpoint == 0 {
+	if gdi.device.REndpoint == 0 || gdi.device.WEndpoint == 0 {
 		return nil, fmt.Errorf("Missing endpoint in device %#x:%#x:%d", gdi.VendorID, gdi.ProductID, gdi.Interface)
 	}
 
-	return newDev, nil
+	return gdi.device, nil
 }
 
 // GenericDevice represents a generic USB device
@@ -408,7 +412,8 @@ type GenericDevice struct {
 	REndpoint uint8
 	WEndpoint uint8
 
-	device *C.struct_libusb_device_handle
+	device *C.struct_libusb_device
+	handle *C.struct_libusb_device_handle
 	lock   sync.Mutex
 }
 
@@ -417,7 +422,7 @@ func (gd *GenericDevice) Write(b []byte) (int, error) {
 	gd.lock.Lock()
 	defer gd.lock.Unlock()
 
-	out, err := interruptTransfer(gd.device, gd.WEndpoint, b)
+	out, err := interruptTransfer(gd.handle, gd.WEndpoint, b)
 	return len(out), err
 }
 
@@ -426,7 +431,7 @@ func (gd *GenericDevice) Read(b []byte) (int, error) {
 	gd.lock.Lock()
 	defer gd.lock.Unlock()
 
-	out, err := interruptTransfer(gd.device, gd.REndpoint, b)
+	out, err := interruptTransfer(gd.handle, gd.REndpoint, b)
 	return len(out), err
 }
 
@@ -435,9 +440,9 @@ func (gd *GenericDevice) Close() error {
 	gd.lock.Lock()
 	defer gd.lock.Unlock()
 
-	if gd.device != nil {
-		C.libusb_close(gd.device)
-		gd.device = nil
+	if gd.handle != nil {
+		C.libusb_close(gd.handle)
+		gd.handle = nil
 	}
 
 	return nil

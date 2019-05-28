@@ -32,7 +32,7 @@ type GenericDeviceInfo struct {
 	VendorID  uint16 // Device Vendor ID
 	ProductID uint16 // Device Product ID
 
-	device *C.struct_libusb_device
+	device *GenericDevice
 
 	Interface int
 
