@@ -193,7 +193,7 @@ func (dev *Device) Write(b []byte) (int, error) {
 
 // Read retrieves an input report from a HID device.
 func (dev *Device) Read(b []byte) (int, error) {
-	// Aborth if nothing to read
+	// Abort if nothing to read
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -223,6 +223,36 @@ func (dev *Device) Read(b []byte) (int, error) {
 		}
 		failure, _ := wcharTToString(message)
 		return 0, errors.New("hidapi: " + failure)
+	}
+	return read, nil
+}
+
+func (dev *Device) ReadTimeout(b []byte, timeout int) (int, error) {
+	// Abort if nothing to read
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// Abort if device closed in between
+	dev.lock.Lock()
+	device := dev.device
+	dev.lock.Unlock()
+
+	if device == nil {
+		return 0, ErrDeviceClosed
+	}
+	// Execute the read operation
+	read := int(C.hid_read_timeout(device, (*C.uchar)(&b[0]), C.size_t(len(b)), C.int(timeout)))
+	if read == -1 {
+		// If the read failed, verify if closed or other error
+		dev.lock.Lock()
+		device = dev.device
+		dev.lock.Unlock()
+
+		if device == nil {
+			return 0, ErrDeviceClosed
+		}
+		// Device not closed, timeout has occurred
+		return 0, errors.New("hidapi: timeout occured")
 	}
 	return read, nil
 }
