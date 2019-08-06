@@ -191,6 +191,53 @@ func (dev *Device) Write(b []byte) (int, error) {
 	return written, nil
 }
 
+// SendFeatureReport sends a feature report to a HID device
+//
+// Feature reports are sent over the Control endpoint as a Set_Report transfer.
+// The first byte of b must contain the Report ID. For devices which only
+// support a single report, this must be set to 0x0. The remaining bytes
+// contain the report data. Since the Report ID is mandatory, calls to
+// SendFeatureReport() will always contain one more byte than the report
+// contains. For example, if a hid report is 16 bytes long, 17 bytes must be
+// passed to SendFeatureReport(): the Report ID (or 0x0, for devices
+// which do not use numbered reports), followed by the report data (16 bytes).
+// In this example, the length passed in would be 17.
+func (dev *Device) SendFeatureReport(b []byte) (int, error) {
+	// Abort if nothing to write
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// Abort if device closed in between
+	dev.lock.Lock()
+	device := dev.device
+	dev.lock.Unlock()
+
+	if device == nil {
+		return 0, ErrDeviceClosed
+	}
+
+	// Send the feature report
+	written := int(C.hid_send_feature_report(device, (*C.uchar)(&b[0]), C.size_t(len(b))))
+	if written == -1 {
+		// If the write failed, verify if closed or other error
+		dev.lock.Lock()
+		device = dev.device
+		dev.lock.Unlock()
+
+		if device == nil {
+			return 0, ErrDeviceClosed
+		}
+		// Device not closed, some other error occurred
+		message := C.hid_error(device)
+		if message == nil {
+			return 0, errors.New("hidapi: unknown failure")
+		}
+		failure, _ := wcharTToString(message)
+		return 0, errors.New("hidapi: " + failure)
+	}
+	return written, nil
+}
+
 // Read retrieves an input report from a HID device.
 func (dev *Device) Read(b []byte) (int, error) {
 	// Aborth if nothing to read
@@ -224,5 +271,48 @@ func (dev *Device) Read(b []byte) (int, error) {
 		failure, _ := wcharTToString(message)
 		return 0, errors.New("hidapi: " + failure)
 	}
+	return read, nil
+}
+
+// GetFeatureReport retreives a feature report from a HID device
+//
+// Set the first byte of []b to the Report ID of the report to be read. Make
+// sure to allow space for this extra byte in []b. Upon return, the first byte
+// will still contain the Report ID, and the report data will start in b[1].
+func (dev *Device) GetFeatureReport(b []byte) (int, error) {
+	// Abort if we don't have anywhere to write the results
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// Abort if device closed in between
+	dev.lock.Lock()
+	device := dev.device
+	dev.lock.Unlock()
+
+	if device == nil {
+		return 0, ErrDeviceClosed
+	}
+
+	// Retrive the feature report
+	read := int(C.hid_get_feature_report(device, (*C.uchar)(&b[0]), C.size_t(len(b))))
+	if read == -1 {
+		// If the read failed, verify if closed or other error
+		dev.lock.Lock()
+		device = dev.device
+		dev.lock.Unlock()
+
+		if device == nil {
+			return 0, ErrDeviceClosed
+		}
+
+		// Device not closed, some other error occured
+		message := C.hid_error(device)
+		if message == nil {
+			return 0, errors.New("hidapi: unknown failure")
+		}
+		failure, _ := wcharTToString(message)
+		return 0, errors.New("hidapi: " + failure)
+	}
+
 	return read, nil
 }
