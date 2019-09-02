@@ -188,6 +188,13 @@ func (dev *Device) Write(b []byte) (int, error) {
 		failure, _ := wcharTToString(message)
 		return 0, errors.New("hidapi: " + failure)
 	}
+
+	if runtime.GOOS == "windows" {
+		// Do not consider the prepended byte when returning number of written bytes
+		// otherwise this can lead to confusion in other layers
+		written -= 1
+	}
+
 	return written, nil
 }
 
