@@ -31,6 +31,16 @@ matrix:
       go: 1.12.x
     - os: osx
       go: 1.12.x
+    - os: linux
+      dist: xenial
+      go: 1.13.x
+    - os: osx
+      go: 1.13.x
+    - os: linux
+      dist: xenial
+      go: 1.14.x
+    - os: osx
+      go: 1.14.x
 
 script:
   - go install ./...
