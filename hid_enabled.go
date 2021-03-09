@@ -47,6 +47,14 @@ import (
 	"runtime"
 	"sync"
 	"unsafe"
+
+	// go mod vendor prunes non-go dirs https://github.com/golang/go/issues/26366
+	_ "github.com/karalabe/hid/libusb/libusb"
+	_ "github.com/karalabe/hid/libusb/libusb/os"
+	_ "github.com/karalabe/hid/hidapi/hidapi"
+	_ "github.com/karalabe/hid/hidapi/libusb"
+	_ "github.com/karalabe/hid/hidapi/mac"
+	_ "github.com/karalabe/hid/hidapi/windows"
 )
 
 // enumerateLock is a mutex serializing access to USB device enumeration needed
