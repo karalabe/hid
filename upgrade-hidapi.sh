@@ -2,14 +2,18 @@
 
 set -euo pipefail
 
-if [[ -z "${1:-}" ]]; then
-	echo "usage: $0 <version>"
-	echo "See https://github.com/libusb/hidapi/releases"
-	exit 1
+version="${1:-}"
+if [[ -z "$version" ]]; then
+	# jq -r '.[0].tag_name'
+	version="$(curl -s -H 'Accept: application/vnd.github.v3+json' \
+		'https://api.github.com/repos/libusb/hidapi/releases?per_page=1' \
+		| sed -n 's/ *"tag_name": *"hidapi-\([^"]*\)",$/\1/p'
+	)"
+	echo "$version" && exit 1
 fi
-version="$1"
-if [[ "$version" = v* ]]; then
-	version="${version#v}"
+
+if [[ "$version" = hidapi-* ]]; then
+	version="${version#hidapi-}"
 fi
 
 archive=hidapi-${version}.zip
