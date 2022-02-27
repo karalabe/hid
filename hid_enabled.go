@@ -4,6 +4,7 @@
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under LGNU GPL 2.1 or later.
 
+//go:build (linux && cgo) || (darwin && !ios && cgo) || (windows && cgo)
 // +build linux,cgo darwin,!ios,cgo windows,cgo
 
 package hid
@@ -59,7 +60,7 @@ import (
 var enumerateLock sync.Mutex
 
 // Supported returns whether this platform is supported by the HID library or not.
-// The goal of this method is to allow programatically handling platforms that do
+// The goal of this method is to allow programmatically handling platforms that do
 // not support USB HID and not having to fall back to build constraints.
 func Supported() bool {
 	return true
@@ -131,6 +132,27 @@ type Device struct {
 
 	device *C.hid_device // Low level HID device to communicate through
 	lock   sync.Mutex
+}
+
+// Connected checks if the HID USB device handle is still found
+func (dev *Device) Connected() bool {
+	dev.lock.Lock()
+	defer dev.lock.Unlock()
+
+	if dev.device == nil {
+		return false
+	}
+
+	deviceInfos := Enumerate(dev.VendorID, dev.ProductID)
+	for _, info := range deviceInfos {
+		if dev.Serial == info.Serial {
+			return true
+		}
+	}
+
+	C.hid_close(dev.device)
+	dev.device = nil
+	return false
 }
 
 // Close releases the HID USB device handle.
@@ -274,7 +296,7 @@ func (dev *Device) Read(b []byte) (int, error) {
 	return read, nil
 }
 
-// GetFeatureReport retreives a feature report from a HID device
+// GetFeatureReport retrieves a feature report from a HID device
 //
 // Set the first byte of []b to the Report ID of the report to be read. Make
 // sure to allow space for this extra byte in []b. Upon return, the first byte
@@ -293,7 +315,7 @@ func (dev *Device) GetFeatureReport(b []byte) (int, error) {
 		return 0, ErrDeviceClosed
 	}
 
-	// Retrive the feature report
+	// Retrieve the feature report
 	read := int(C.hid_get_feature_report(device, (*C.uchar)(&b[0]), C.size_t(len(b))))
 	if read == -1 {
 		// If the read failed, verify if closed or other error
@@ -305,7 +327,7 @@ func (dev *Device) GetFeatureReport(b []byte) (int, error) {
 			return 0, ErrDeviceClosed
 		}
 
-		// Device not closed, some other error occured
+		// Device not closed, some other error occurred
 		message := C.hid_error(device)
 		if message == nil {
 			return 0, errors.New("hidapi: unknown failure")

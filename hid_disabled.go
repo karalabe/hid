@@ -4,12 +4,13 @@
 // This file is released under the 3-clause BSD license. Note however that Linux
 // support depends on libusb, released under GNU LGPL 2.1 or later.
 
+//go:build (!linux && !darwin && !windows) || ios || !cgo
 // +build !linux,!darwin,!windows ios !cgo
 
 package hid
 
 // Supported returns whether this platform is supported by the HID library or not.
-// The goal of this method is to allow programatically handling platforms that do
+// The goal of this method is to allow programmatically handling platforms that do
 // not support USB HID and not having to fall back to build constraints.
 func Supported() bool {
 	return false
@@ -32,6 +33,12 @@ type Device struct {
 // implements the method just returns an error.
 func (info DeviceInfo) Open() (*Device, error) {
 	return nil, ErrUnsupportedPlatform
+}
+
+// Connected checks if the HID USB device handle is still found. On platforms
+// that this file implements the method is just a noop.
+func (dev *Device) Connected() bool {
+	return false
 }
 
 // Close releases the HID USB device handle. On platforms that this file implements
@@ -65,7 +72,7 @@ func (dev *Device) Read(b []byte) (int, error) {
 	return 0, ErrUnsupportedPlatform
 }
 
-// GetFeatureReport retreives a feature report from a HID device
+// GetFeatureReport retrieves a feature report from a HID device
 //
 // Set the first byte of []b to the Report ID of the report to be read. Make
 // sure to allow space for this extra byte in []b. Upon return, the first byte
