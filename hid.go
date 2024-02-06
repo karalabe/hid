@@ -50,6 +50,10 @@ type Device interface {
 	// reports, for low level USB read uses interrupt transfers.
 	Read(b []byte) (int, error)
 
+	// Read retrieves a binary blob from a USB device, using a timeout. A timeout
+	// of 0 means blocking.
+	ReadTimeout(b []byte, timeout int) (int, error)
+
 	// GetFeatureReport retreives a feature report from a HID device
 	//
 	// Set the first byte of []b to the Report ID of the report to be read. Make
