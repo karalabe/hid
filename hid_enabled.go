@@ -182,8 +182,10 @@ func (dev *hidDevice) Write(b []byte) (int, error) {
 	}
 	// Prepend a HID report ID on Windows, other OSes don't need it
 	var report []byte
+	fixlen := 0
 	if runtime.GOOS == "windows" {
 		report = append([]byte{0x00}, b...)
+		fixlen = -1
 	} else {
 		report = b
 	}
@@ -205,6 +207,9 @@ func (dev *hidDevice) Write(b []byte) (int, error) {
 		}
 		failure, _ := wcharTToString(message)
 		return 0, errors.New("hidapi: " + failure)
+	}
+	if written > 0 {
+		written += fixlen
 	}
 	return written, nil
 }
