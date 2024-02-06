@@ -23,6 +23,7 @@ package main
 import (
 	"fmt"
 	"strings"
+
 	"github.com/karalabe/hid"
 )
 
@@ -39,6 +40,7 @@ func main() {
 			}
 		}
 	}
+	fmt.Printf("hid.Supported() %v\n", hid.Supported())
 	for i, hid := range hids {
 		fmt.Println(strings.Repeat("-", 128))
 		fmt.Printf("HID #%d\n", i)
