@@ -216,10 +216,10 @@ func (dev *hidDevice) Write(b []byte) (int, error) {
 
 // Read retrieves an input report from a HID device, blocking and waiting for a response
 func (dev *hidDevice) Read(b []byte) (int, error) {
-	return dev.ReadTimeout(b, 0)
+	return dev.ReadTimeout(b, -1)
 }
 
-// ReadTimeout retrieves an input report from a HID device with a timeout. If timeout is 0 a
+// ReadTimeout retrieves an input report from a HID device with a timeout. If timeout is -1, a
 // blocking read is performed.
 func (dev *hidDevice) ReadTimeout(b []byte, timeout int) (int, error) {
 	// Abort if nothing to read
