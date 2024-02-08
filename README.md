@@ -3,7 +3,7 @@
 
 [travisimg]:   https://travis-ci.org/karalabe/hid.svg?branch=master
 [travisurl]:   https://travis-ci.org/karalabe/hid
-[appveyorimg]: https://ci.appveyor.com/api/projects/status/plroy54odykb0ch3/branch/master?svg=true
+[appveyorimg]: https://ci.appveyor.com/api/projects/status/7cm4ko18etdvkb7f?svg=true
 [appveyorurl]: https://ci.appveyor.com/project/karalabe/hid
 [docimg]:      https://godoc.org/github.com/karalabe/hid?status.svg
 [docurl]:      https://godoc.org/github.com/karalabe/hid
