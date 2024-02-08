@@ -15,14 +15,27 @@ The `hid` package is a cross platform library for accessing and communicating wi
 Devices (HID). It is an alternative package to [`gousb`](https://github.com/karalabe/gousb) for use
 cases where devices support this ligher mode of operation (e.g. input devices, hardware crypto wallets).
 
-The package wraps [`hidapi`](https://github.com/signal11/hidapi) for accessing OS specific USB HID APIs
+The package wraps [`hidapi`](https://github.com/libusb/hidapi) for accessing OS specific USB HID APIs
 directly instead of using low level USB constructs, which might have permission issues on some platforms.
-On Linux the package also wraps [`libusb`](https://github.com/libusb/libusb). Both of these dependencies
-are vendored directly into the repository and wrapped using CGO, making the `hid` package self-contained
+The `hidapi` dependency is vendored directly into the repository and wrapped using CGO, making the `hid` package self-contained
 and go-gettable.
 
 Supported platforms at the moment are Linux, macOS and Windows (exclude constraints are also specified
 for Android and iOS to allow smoother vendoring into cross platform projects).
+
+## Dependencies 
+
+On linux, the 'libudev' package is required for building. 
+
+On Ubuntu:
+
+	apt install libhidapi-dev
+
+
+On Fedora:
+
+	dnf install systemd-devel
+
 
 ## Cross-compiling
 
@@ -45,9 +58,8 @@ such, `gowchar` was also vendored in inline (copyright headers and origins prese
 
 The components of `hid` are licensed as such:
 
- * `hidapi` is released under the [3-clause BSD](https://github.com/signal11/hidapi/blob/master/LICENSE-bsd.txt) license.
- * `libusb` is released under the [GNU LGPL 2.1](https://github.com/libusb/libusb/blob/master/COPYING)license.
- * `go.hid` is released under the [2-clause BSD](https://github.com/GeertJohan/go.hid/blob/master/LICENSE) license.
+ * `hidapi` is released under the [three licenses](https://github.com/libusb/hidapi/blob/master/LICENSE.txt): [GPL-V3](https://github.com/libusb/hidapi/blob/master/LICENSE-gpl3.txt), [3-clause BSD](https://github.com/libusb/hidapi/blob/master/LICENSE-bsd.txt) and [original HIDAPI](https://github.com/libusb/hidapi/blob/master/LICENSE-orig.txt) license.
+ * `go.hid` was released under the [2-clause BSD](https://github.com/GeertJohan/go.hid/blob/master/LICENSE) license.
  * `gowchar` is released under the [3-clause BSD](https://github.com/orofarne/gowchar/blob/master/LICENSE) license.
 
 Given the above, `hid` is licensed under GNU LGPL 2.1 or later on Linux and 3-clause BSD on other platforms.
