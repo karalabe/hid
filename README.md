@@ -28,7 +28,7 @@ On linux, the 'libudev' package is required for building.
 
 On Ubuntu:
 
-	apt install libhidapi-dev
+	apt install libudev-dev
 
 
 On Fedora:
