@@ -1,4 +1,3 @@
-[![Travis][travisimg]][travisurl]
 [![AppVeyor][appveyorimg]][appveyorurl]
 [![GoDoc][docimg]][docurl]
 
