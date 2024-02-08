@@ -1,35 +1,65 @@
-image: Visual Studio 2019
-
-# Clone directly into GOPATH.
-clone_folder: C:\gopath\src\github.com\karalabe\hid
 clone_depth: 1
 version: "{branch}.{build}"
+
+image:
+  - Ubuntu
+  - Visual Studio 2019
+
 environment:
-  global:
-    GOPATH: C:\gopath
-    CC: gcc.exe
   matrix:
     - GOARCH: amd64
-      MSYS2_ARCH: x86_64
-      MSYS2_BITS: 64
-      MSYSTEM: MINGW64
-      PATH: C:\msys64\mingw64\bin\;%PATH%
+      MINGW: 'C:\msys64\mingw64'
     - GOARCH: 386
-      MSYS2_ARCH: i686
-      MSYS2_BITS: 32
-      MSYSTEM: MINGW32
-      PATH: C:\msys64\mingw32\bin\;%PATH%
+      MINGW: 'C:\msys64\mingw32'
 
 install:
-  - rmdir C:\go /s /q
-  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.22.0.windows-%GOARCH%.zip
-  - 7z x go1.22.0.windows-%GOARCH%.zip -y -oC:\ > NUL
+  - git submodule update --init --depth 1 --recursive
   - go version
-  - gcc --version
 
-build_script:
-  - go install ./...
-  - go test -v ./...
-  - set CGO_ENABLED=0
-  - go install ./...
-  - go test -v ./...
+for:
+  # Linux has its own script without -arch and -cc.
+  # The linux builder also runs lint.
+  - matrix:
+      only:
+        - image: Ubuntu
+    build_script:
+      - sudo apt-get -qy --no-install-recommends install libudev-dev
+      - gcc --version
+      - go build ./...
+      - CGO_ENABLED=0 go build ./...
+      - go run ./demo.go
+      - CGO_ENABLED=0 go run ./demo.go
+    test_script:
+      - go test -v ./...
+      - CGO_ENABLED=0 go test -v ./...
+
+  # linux/386 is disabled.
+  - matrix:
+      exclude:
+        - image: Ubuntu
+          GETH_ARCH: 386
+
+  # Windows builds for amd64 + 386.
+  - matrix:
+      only:
+        - image: Visual Studio 2019
+    environment:
+      # We use gcc from MSYS2 because it is the most recent compiler version available on
+      # AppVeyor. Note: gcc.exe only works properly if the corresponding bin/ directory is
+      # contained in PATH.
+      GCC: '%MINGW%\bin\gcc.exe'
+      PATH: '%MINGW%\bin;C:\Program Files (x86)\NSIS\;%PATH%'
+    build_script:
+      - 'echo %GOARCH%'
+      - 'echo %GCC%'
+      - '%GCC% --version'
+      - go build ./...
+      - go run ./demo.go
+      - set CGO_ENABLED=0
+      - go build ./...
+      - go run ./demo.go
+    test_script:
+      - set CGO_ENABLED=1
+      - go test -v ./...
+      - set CGO_ENABLED=0
+      - go test -v ./...
