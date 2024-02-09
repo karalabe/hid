@@ -17,13 +17,10 @@ install:
   - go version
 
 for:
-  # Linux has its own script without -arch and -cc.
-  # The linux builder also runs lint.
   - matrix:
       only:
         - image: Ubuntu
     build_script:
-      - sudo apt-get -qy --no-install-recommends install libudev-dev
       - gcc --version
       - go build ./...
       - CGO_ENABLED=0 go build ./...
@@ -32,12 +29,6 @@ for:
     test_script:
       - go test -v ./...
       - CGO_ENABLED=0 go test -v ./...
-
-  # linux/386 is disabled.
-  - matrix:
-      exclude:
-        - image: Ubuntu
-          GETH_ARCH: 386
 
   # Windows builds for amd64 + 386.
   - matrix:
