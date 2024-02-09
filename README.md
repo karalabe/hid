@@ -22,18 +22,9 @@ and go-gettable.
 Supported platforms at the moment are Linux, macOS and Windows (exclude constraints are also specified
 for Android and iOS to allow smoother vendoring into cross platform projects).
 
-## Dependencies 
-
-On linux, the 'libudev' package is required for building. 
-
-On Ubuntu:
-
-	apt install libudev-dev
-
-
-On Fedora:
-
-	dnf install systemd-devel
+The `hidapi` on linux unfortunately requires `libuddev` (`libudev-dev` on ubuntu, `systemd-devel` on fedora). Therefore, 
+this library includes [`libusb`](https://github.com/libusb/libusb) which we use as a backend on `linux`, and thus avoid 
+runtime dependencies.
 
 
 ## Cross-compiling
@@ -58,6 +49,7 @@ such, `gowchar` was also vendored in inline (copyright headers and origins prese
 The components of `hid` are licensed as such:
 
  * `hidapi` is released under the [three licenses](https://github.com/libusb/hidapi/blob/master/LICENSE.txt): [GPL-V3](https://github.com/libusb/hidapi/blob/master/LICENSE-gpl3.txt), [3-clause BSD](https://github.com/libusb/hidapi/blob/master/LICENSE-bsd.txt) and [original HIDAPI](https://github.com/libusb/hidapi/blob/master/LICENSE-orig.txt) license.
+ * `libusb` is released under [GPLv2.1](https://github.com/libusb/libusb/blob/master/COPYING)
  * `go.hid` was released under the [2-clause BSD](https://github.com/GeertJohan/go.hid/blob/master/LICENSE) license.
  * `gowchar` is released under the [3-clause BSD](https://github.com/orofarne/gowchar/blob/master/LICENSE) license.
 
