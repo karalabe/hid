@@ -11,32 +11,28 @@
 package hid
 
 /*
-Linux uses the 'libudev' package.
-
-On Fedora:
-
-	dnf install systemd-devel
-
-On Ubuntu:
-
-	apt install libhidapi-dev
-
+Linux/hidapi requires the 'libudev' package. Fedora:`dnf install systemd-devel`, Ubuntu `apt install libhidapi-dev`.
+However, we prefer to not require libudev, which is why `libusb` is included, and enabled
+specifically for the linux platform, below.
 */
 
 /*
-
 #cgo CFLAGS: -I./hidapi/hidapi
 #cgo CFLAGS: -DDEFAULT_VISIBILITY=""
 #cgo CFLAGS: -DPOLL_NFDS_TYPE=int
 
-#cgo linux CFLAGS: -DOS_LINUX -D_GNU_SOURCE -DHAVE_SYS_TIME_H
-#cgo linux,!android LDFLAGS: -lrt -ludev
+#cgo linux CFLAGS: -I./libusb/libusb -DOS_LINUX -D_GNU_SOURCE -DHAVE_SYS_TIME_H -DHAVE_CLOCK_GETTIME
+#cgo linux,!android LDFLAGS: -lrt
+
 #cgo darwin CFLAGS: -DOS_DARWIN -DHAVE_SYS_TIME_H
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
+
 #cgo windows CFLAGS: -DOS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
+
 #cgo freebsd CFLAGS: -DOS_FREEBSD
 #cgo freebsd LDFLAGS: -lusb
+
 #cgo openbsd CFLAGS: -DOS_OPENBSD
 
 #if defined(OS_LINUX) || defined(OS_DARWIN) || defined(DOS_FREEBSD) || defined(OS_OPENBSD)
@@ -44,7 +40,25 @@ On Ubuntu:
 #endif
 
 #ifdef OS_LINUX
-	#include "hidapi/linux/hid.c"
+	#include "os/events_posix.h"
+	#include "os/threads_posix.h"
+
+	#include "os/events_posix.c"
+	#include "os/threads_posix.c"
+
+	#include "os/linux_usbfs.c"
+	#include "os/linux_netlink.c"
+
+	#include "core.c"
+	#include "descriptor.c"
+	#include "hotplug.c"
+
+	#include "io.c"
+	#include "strerror.c"
+	#include "sync.c"
+
+   #include "hidapi/libusb/hid.c"
+
 #elif OS_DARWIN
 	#include "hidapi/mac/hid.c"
 #elif OS_WINDOWS
