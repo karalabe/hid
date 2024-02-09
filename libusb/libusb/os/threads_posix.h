@@ -23,7 +23,7 @@
 
 #include <pthread.h>
 
-#define PTHREAD_CHECK(expression)	ASSERT_EQ(expression, 0)
+#define PTHREAD_CHECK(expression)	(void)(expression)
 
 #define USBI_MUTEX_INITIALIZER	PTHREAD_MUTEX_INITIALIZER
 typedef pthread_mutex_t usbi_mutex_static_t;

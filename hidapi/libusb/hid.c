@@ -20,7 +20,9 @@
         https://github.com/libusb/hidapi .
 ********************************************************/
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* needed for wcsdup() before glibc 2.10 */
+#endif
 
 /* C */
 #include <stdio.h>
