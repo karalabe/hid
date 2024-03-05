@@ -22,7 +22,7 @@ specifically for the linux platform, below.
 #cgo CFLAGS: -DPOLL_NFDS_TYPE=int
 
 #cgo linux CFLAGS: -I./libusb/libusb -DOS_LINUX -D_GNU_SOURCE -DHAVE_SYS_TIME_H -DHAVE_CLOCK_GETTIME
-#cgo linux,!android LDFLAGS: -lrt -lpthreads
+#cgo linux,!android LDFLAGS: -lrt
 
 #cgo darwin CFLAGS: -DOS_DARWIN -DHAVE_SYS_TIME_H
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
