@@ -22,7 +22,7 @@ specifically for the linux platform, below.
 #cgo CFLAGS: -DPOLL_NFDS_TYPE=int
 
 #cgo linux CFLAGS: -I./libusb/libusb -DOS_LINUX -D_GNU_SOURCE -DHAVE_SYS_TIME_H -DHAVE_CLOCK_GETTIME
-#cgo linux,!android LDFLAGS: -lrt
+#cgo linux,!android LDFLAGS: -lrt -lpthreads
 
 #cgo darwin CFLAGS: -DOS_DARWIN -DHAVE_SYS_TIME_H
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
@@ -44,7 +44,6 @@ specifically for the linux platform, below.
 	#include "os/threads_posix.h"
 
 	#include "os/events_posix.c"
-	#include "os/threads_posix.c"
 
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"
