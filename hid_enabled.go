@@ -44,6 +44,7 @@ specifically for the linux platform, below.
 	#include "os/threads_posix.h"
 
 	#include "os/events_posix.c"
+	#include "os/threads_posix.c"
 
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"

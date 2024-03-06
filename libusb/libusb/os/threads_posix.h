@@ -64,8 +64,11 @@ static inline void usbi_cond_wait(usbi_cond_t *cond, usbi_mutex_t *mutex)
 {
 	PTHREAD_CHECK(pthread_cond_wait(cond, mutex));
 }
-int usbi_cond_timedwait(usbi_cond_t *cond,
-	usbi_mutex_t *mutex, const struct timeval *tv);
+// This has been commented out, to avoid conflicting alpine/musl from complaining
+// about conflicting types. It is defined and implemented in threads_posix.c instead.
+//int usbi_cond_timedwait(usbi_cond_t *cond,
+//	usbi_mutex_t *mutex, const struct timeval *tv);
+
 static inline void usbi_cond_broadcast(usbi_cond_t *cond)
 {
 	PTHREAD_CHECK(pthread_cond_broadcast(cond));
